@@ -1,31 +1,38 @@
-var webpage = require('webpage'),
-    page = webpage.create();
+/**
+ *  This component scraper is run via PhantomJS. It's malleable from project to project
+ *  as IDs, classes and URLs will change
+ */
 
-page.open('https://staging-api.kurtosys.io/tools/ksys339/fact-sheet/SEVF/en-GB#/?_k=j2iftj', function (status) {
+export function scrapeComponents(url, className, wait = 6000) {
+    let webpage = require('webpage'),
+        page = webpage.create();
 
-    setTimeout(function () {
-        var heightsOfChildren = [],
-            numberOfChildren = page.evaluate(function () {
-                return document.querySelector('.ksw__card--2-3').childNodes.length;
-            });
+    page.open(url, function (status) {
 
-        for (var i = 0; i < numberOfChildren; i++){
-            var height = page.evaluate(function(i) {
-                var child = document.querySelector('.ksw__card--2-3').childNodes[i],
-                    height = child.offsetHeight;
+        setTimeout(function () {
+            let heightsOfChildren = [],
+                numberOfChildren = page.evaluate(function () {
+                    return document.querySelector(className).childNodes.length;
+                });
 
-                height += parseInt(window.getComputedStyle(child).getPropertyValue('margin-top'));
-                height += parseInt(window.getComputedStyle(child).getPropertyValue('margin-bottom'));
+            for (let i = 0; i < numberOfChildren; i++) {
+                let height = page.evaluate(i => {
+                    let child = document.querySelector(className).childNodes[i],
+                        height = child.offsetHeight;
 
-                return height;
-            }, i);
+                    height += parseInt(window.getComputedStyle(child).getPropertyValue('margin-top'));
+                    height += parseInt(window.getComputedStyle(child).getPropertyValue('margin-bottom'));
 
-            heightsOfChildren.push(height);
-        }
+                    return height;
+                }, i);
 
-        console.log(heightsOfChildren);
+                heightsOfChildren.push(height);
+            }
 
-        phantom.exit();
-    }, 6000);
+            console.log(heightsOfChildren);
 
-});
+            phantom.exit();
+        }, wait);
+
+    });
+}
