@@ -21,46 +21,48 @@
 // console.log('document', document);
 
 import { scrapeComponents } from './ComponentScraper/ComponentScraper';
+import { Designer } from './Designer/Designer';
 
-let express = require('express'),
-    fs = require('fs'),
-    bodyParser = require('body-parser'),
+let fs = require('fs'),
     path = require('path');
 
-let app = express();
+let configPath = path.join(process.cwd(), 'src', 'config.json'),
+    config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 
-let webpack = require("webpack"),
-    webpackDevMiddleware = require("webpack-dev-middleware"),
-    webpackHotMiddleware = require("webpack-hot-middleware"),
-    clientConfig = require("../../webpack.client");
+let url = config[0].url;
+let classes = config[0].classes[0];
 
-let compiler = webpack(clientConfig);
+let phantom = require('node-phantom'),
+    heightsOfChildren = [];
 
-/*--- App ---*/
+phantom.create((err, ph) => {
+    ph.createPage((err, page) => {
+        page.open(url, function (status) {
 
-app.set('view engine', 'ejs');
-app.set('views', path.resolve(process.cwd(), 'src/server/views'));
+            setTimeout(function () {
+                let numberOfChildren = page.evaluate(function () {
+                    return document.querySelector(className).childNodes.length;
+                });
 
+                for (let i = 0; i < numberOfChildren; i++) {
+                    let height = page.evaluate(i => {
+                        let child = document.querySelector(className).childNodes[i],
+                            height = child.offsetHeight;
 
-app.use(bodyParser.json());
-app.use(webpackDevMiddleware(compiler, {
-    noInfo: true,
-    publicPath: clientConfig.output.publicPath
-}));
-app.use(webpackHotMiddleware(compiler));
+                        height += parseInt(window.getComputedStyle(child).getPropertyValue('margin-top'));
+                        height += parseInt(window.getComputedStyle(child).getPropertyValue('margin-bottom'));
 
+                        return height;
+                    }, i);
 
-app.post('/get-components', (req, res) => {
-    let url = req.body.url,
-        classNames = req.body.class_names;
+                    heightsOfChildren.push(height);
+                }
 
-    for (let className of classNames){
-        console.log(`Getting Page Component Dimensions for Class Name ${className}`);
-        scrapeComponents(url, className);
-    }
-});
+                console.log(heightsOfChildren);
 
+                phantom.exit();
+            }, wait);
 
-let system = app.listen(3000, () => {
-    console.log('App running on port 3000');
+        });
+    });
 });

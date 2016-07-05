@@ -4,35 +4,38 @@
  */
 
 export function scrapeComponents(url, className, wait = 6000) {
-    let webpage = require('webpage'),
-        page = webpage.create();
+    let phantom = require('node-phantom'),
+        heightsOfChildren = [];
 
-    page.open(url, function (status) {
+    phantom.create((err, ph) => {
+        ph.createPage((err, page) => {
+            page.open(url, function (status) {
 
-        setTimeout(function () {
-            let heightsOfChildren = [],
-                numberOfChildren = page.evaluate(function () {
-                    return document.querySelector(className).childNodes.length;
-                });
+                setTimeout(function () {
+                    let numberOfChildren = page.evaluate(function () {
+                            return document.querySelector(className).childNodes.length;
+                        });
 
-            for (let i = 0; i < numberOfChildren; i++) {
-                let height = page.evaluate(i => {
-                    let child = document.querySelector(className).childNodes[i],
-                        height = child.offsetHeight;
+                    for (let i = 0; i < numberOfChildren; i++) {
+                        let height = page.evaluate(i => {
+                            let child = document.querySelector(className).childNodes[i],
+                                height = child.offsetHeight;
 
-                    height += parseInt(window.getComputedStyle(child).getPropertyValue('margin-top'));
-                    height += parseInt(window.getComputedStyle(child).getPropertyValue('margin-bottom'));
+                            height += parseInt(window.getComputedStyle(child).getPropertyValue('margin-top'));
+                            height += parseInt(window.getComputedStyle(child).getPropertyValue('margin-bottom'));
 
-                    return height;
-                }, i);
+                            return height;
+                        }, i);
 
-                heightsOfChildren.push(height);
-            }
+                        heightsOfChildren.push(height);
+                    }
 
-            console.log(heightsOfChildren);
+                    console.log(heightsOfChildren);
 
-            phantom.exit();
-        }, wait);
+                    phantom.exit();
+                }, wait);
 
+            });
+        });
     });
 }
